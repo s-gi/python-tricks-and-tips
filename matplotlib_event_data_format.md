@@ -83,3 +83,119 @@ This converts the float value back into a `pandas.Timestamp` or Python `datetime
 
 ### Conclusion
 `event.xdata` contains data in a "Matplotlib format" because Matplotlib internally handles the data in a numerical form that is optimized for plotting. For date/time plots, this often means that dates are represented as floating-point numbers (e.g., days or seconds since the Unix epoch). The format you see in `event.xdata` depends on the type of data used in your plot's x-axis (numerical, datetime, or categorical).
+
+## Enabling Interactive Features
+When the backend used by default do not support interactive fueatures, e.g sometime in PyCharm, you need to use one that Matplotlib uses to render plots and handle interactions, like e.g. `matplotlib.use('TkAgg')` 
+
+### Understanding Matplotlib Backends
+
+Matplotlib supports several **backends**, each designed to work with different environments, GUI toolkits, and rendering methods. A **backend** is responsible for how Matplotlib handles plotting, rendering, and user interaction (like clicks, zoom, and panning).
+
+#### Key Matplotlib Backends:
+
+1. **TkAgg**:
+   - This backend uses **Tkinter**, which is a standard GUI library in Python, to render and interact with plots.
+   - It's widely used and supports interactive features, like handling mouse clicks, zooming, and panning.
+   
+2. **Agg**:
+   - This is a **non-interactive backend** designed for generating plots without user interaction. It is primarily used for saving plots to files (like PNG, SVG, etc.).
+   - This backend does not support mouse events because it is not designed for interactive plotting.
+
+3. **Qt5Agg**:
+   - Uses the **Qt** framework (like PyQt or PySide) for rendering interactive plots.
+   - Also supports interaction, including mouse events.
+
+4. **WebAgg**:
+   - A backend that works in the browser and can display interactive plots in a web application.
+   
+5. **MacOSX**:
+   - A backend used on macOS, relying on macOS's native graphics system.
+   - Supports interactive features, but may require additional setup for certain systems.
+
+### Why `matplotlib.use('TkAgg')` is Required in PyCharm
+
+In PyCharm, the default backend for Matplotlib may not always support interactive features (like mouse click events), especially when you're running scripts in non-interactive environments (such as terminal-based plots). In these cases, PyCharm's default backend might be **Agg** or another non-interactive backend, which does not handle GUI-based user input (like mouse clicks).
+
+To enable interaction in PyCharm, you explicitly set the backend to **TkAgg**, which uses the Tkinter GUI framework. This backend ensures that the plot window can handle mouse events such as clicks, and it also enables zooming and panning.
+
+### How `matplotlib.use('TkAgg')` Works
+
+By calling `matplotlib.use('TkAgg')` before importing `matplotlib.pyplot`, you are telling Matplotlib to use the **TkAgg** backend, which enables interactive features:
+
+```python
+import matplotlib
+matplotlib.use('TkAgg')  # Set the backend to TkAgg before importing pyplot
+
+import matplotlib.pyplot as plt
+```
+
+- **TkAgg** backend ensures that the plot window uses the Tkinter event loop for interaction.
+- This backend allows the plotting window to remain open and respond to events like mouse clicks.
+
+### Complete Example with `TkAgg`:
+
+```python
+import matplotlib
+matplotlib.use('TkAgg')  # Set the backend to TkAgg
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Create a simple time series
+dates = pd.date_range('2025-01-01', periods=5, freq='D')
+values = [1, 3, 5, 7, 9]
+
+# Create a plot with the data
+fig, ax = plt.subplots()
+ax.plot(dates, values)
+
+# Event handling function to capture mouse click events
+def on_click(event):
+    print(f"Clicked x-data: {event.xdata}")
+
+# Connect the event handler to the 'button_press_event'
+fig.canvas.mpl_connect('button_press_event', on_click)
+
+# Display the plot
+plt.show()
+```
+
+### Steps to Run the Code:
+
+1. **Install Required Libraries**: If you haven't already, make sure `matplotlib` and `pandas` are installed:
+
+   ```bash
+   pip install matplotlib pandas
+   ```
+
+2. **Create a New Python File in PyCharm**: Open PyCharm and create a new Python file (e.g., `interactive_plot.py`), and paste the above code into it.
+
+3. **Run the Script**: Click the **Run** button (green triangle icon) or press `Shift + F10` to run the script. This will open a new window displaying the plot.
+
+4. **Click on the Plot**: When the plot window opens, click on various points on the plot, and you'll see the `event.xdata` printed in the console. The value represents the number of days since the Unix epoch for the clicked point.
+
+### Expected Output in the Console:
+For example, clicking on different x-values (dates) will output something like:
+
+```
+Clicked x-data: 20096.5
+Clicked x-data: 20097.5
+Clicked x-data: 20098.5
+```
+
+Here, `event.xdata` is a floating-point value representing the number of days since the Unix epoch (`1970-01-01`).
+
+### When You Don't Need `matplotlib.use('TkAgg')`
+If you're running your script in an environment that already supports interactive plotting (like Jupyter notebooks or some Python IDEs), Matplotlib might automatically use an appropriate backend (like **TkAgg** or **Qt5Agg**) that supports interactivity without needing to set it explicitly. In these cases, you don't need to call `matplotlib.use('TkAgg')`.
+
+### What Happens Without `matplotlib.use('TkAgg')`?
+If you don't specify a backend in PyCharm, and Matplotlib defaults to a non-interactive backend like **Agg**, the plot will still render, but:
+- It won't support interactive features like mouse clicks.
+- The plot will close immediately after rendering because the script finishes execution without waiting for interaction.
+
+### Summary:
+
+- **PyCharm** may default to a non-interactive backend like **Agg**, which doesn't support mouse events.
+- By setting `matplotlib.use('TkAgg')`, you're explicitly telling Matplotlib to use the **TkAgg** backend, which supports interactive features like click events.
+- This is needed in PyCharm or other IDEs when you're running scripts outside of environments like Jupyter notebooks that automatically handle interactive plotting.
+
