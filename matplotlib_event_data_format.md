@@ -1,4 +1,4 @@
-## What is the format of Matplotlib event data?
+## Understanding How Matplotlib Represents Event Data
 In Matplotlib, `event.xdata` (and similar attributes like `event.ydata`) represents the data coordinates of a mouse click or interaction, and these are returned in the format that corresponds to the data type of the plot's axes.
 
 If `event.xdata` contains data in a "Matplotlib format," it's typically referring to the following concepts:
