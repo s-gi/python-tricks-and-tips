@@ -1,2 +1,2 @@
 # python-tricks-and-tips
-A memorandum to browse when looking for a solution of common and recurring issues in Python.
+A memorandum to refer to when seeking solutions for common and recurring issues in Python.
