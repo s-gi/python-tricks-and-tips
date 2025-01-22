@@ -80,12 +80,118 @@ print(clicked_timestamp)
 ```
 
 This converts the float value back into a `pandas.Timestamp` or Python `datetime`.
+> [!TIP]
+> - The conversion can be also carried out as in the snippet below as suggested in [this](https://stackoverflow.com/questions/34725701/how-to-get-data-in-datetime-format-from-plot-with-events-in-python/34726450#34726450) stackoverflow entry.
+> ```python
+> import matplotlib.dates as mdates
+> # Convert the float (days since epoch) back to a datetime with mdates.num2date
+> clicked_timestamp = mdates.num2date(event.xdata)
+> print(clicked_timestamp)
+> ```
+> - If instead you want to convert human-readable timestamp or datetime to `event.xdata` you might use python's matplotlib.dates.date2num, converting numpy array to matplotlib datetimes. See [this](https://stackoverflow.com/questions/34843513/python-matplotlib-dates-date2num-converting-numpy-array-to-matplotlib-datetimes) stackoverflow entry on the topic.
+
+### 4.1 Code snippet: convert datetime to matplotlib format
+```python
+import pandas as pd
+import matplotlib.dates as dates
+import numpy as np
+
+t = pd.date_range(pd.Timestamp.today(), periods=5)
+print(f'Original date range: {t}')
+
+# Convert t to a NumPy array
+t_np = t.to_numpy()
+
+# This line below did not raise an error, as in the original post. I don't know why.
+plt_dates1 = dates.date2num(t_np)
+print(f'Conversion to Matplotlib format with date2num: {plt_dates1}')
+
+# The workaround below works not just as an alternative,
+# but also gives more insight into the Matplotlib format.
+z = np.array([0]).astype(t_np.dtype)
+plt_dates2 = (t_np - z) / np.timedelta64(1, 'D')
+print(f'Conversion to Matplotlib format with workaround (t_np - z) / np.timedelta64: {plt_dates2}')
+
+# Assert that the two conversions are equal
+assert np.allclose(plt_dates1, plt_dates2), "The two date conversions are not equal"
+```
+### When pandas.Timeseries have a perticular frequency: use pandas.to_datetime
+In [this](https://stackoverflow.com/questions/54035067/matplotlib-event-xdata-out-of-timeries-range/54036315#54036315) the very related entry in stackoverflow, `matplotlib.dates.num2date` do not return the correct value as in
+
+```python
+import numpy as np
+import pandas as pd
+
+# uncomment if default backend do not support interactive features
+# import matplotlib
+# matplotlib.use('TkAgg')  # Set the backend to TkAgg before importing pyplot
+
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+def on_click(event):
+    if event.inaxes is not None:
+        # provide raw and converted x data
+        print(f"{event.xdata} --> {mdates.num2date(event.xdata)}")
+        # add a vertical line at clicked location
+        line = ax.axvline(x=event.xdata)
+        # Convert the float (days since epoch) back to a datetime
+        clicked_timestamp = pd.to_datetime(event.xdata, unit=ax.lines[0].get_xdata()[0].freqstr, origin='unix')
+        print(f"pandas.to_datetime --> {clicked_timestamp}")
+        plt.draw()
+
+t = pd.date_range('2015-11-01', '2016-01-06', freq='h')
+y = np.random.normal(0, 1, t.size).cumsum()
+
+df = pd.DataFrame({'Y':y}, index=t)
+
+fig, ax = plt.subplots()
+line = None
+df.plot(ax=ax)
+fig.canvas.mpl_connect('button_press_event', on_click)
+plt.show()
+```
+Note that in this case `matplotlib.dates.num2date` fails whereas `pandas.to_datetime`, with the appropriate frequency, in this case 'h', is still working. See output:
+
+```
+402204.54193548387 --> 3071-03-14 13:00:23.225800+00:00
+pandas.to_datetime --> 2015-11-19 12:32:30.967741921
+```
+Note tha also pandas.Period will work, as far as the correct frequency is provided
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def on_click(event):
+    print(pd.Period(ordinal=int(event.xdata), freq='h'))
+
+
+t = pd.date_range('2015-11-01', '2016-01-06', freq='h')
+y = np.random.normal(0, 1, t.size).cumsum()
+
+df = pd.DataFrame({'Y': y}, index=t)
+
+fig, ax = plt.subplots()
+df.plot(ax=ax)
+fig.canvas.mpl_connect('button_press_event', on_click)
+plt.show()
+```
+
+In thiscase, however, the output is trucated to the nearest hour. See below an example of output.
+
+```
+2015-11-08 11:00
+pandas.to_datetime --> 2015-11-08 11:54:11.612903130
+```
 
 ### Conclusion
 `event.xdata` contains data in a "Matplotlib format" because Matplotlib internally handles the data in a numerical form that is optimized for plotting. For date/time plots, this often means that dates are represented as floating-point numbers (e.g., days or seconds since the Unix epoch). The format you see in `event.xdata` depends on the type of data used in your plot's x-axis (numerical, datetime, or categorical).
 
 ## Enabling Interactive Features
-When the backend used by default do not support interactive fueatures, e.g sometime in PyCharm, you need to use one that Matplotlib uses to render plots and handle interactions, like e.g. `matplotlib.use('TkAgg')` 
+When the backend used by default do not support interactive features, e.g sometime in PyCharm, you need to use one that Matplotlib uses to render plots and handle interactions, like e.g. `matplotlib.use('TkAgg')` 
 
 ### Understanding Matplotlib Backends
 
@@ -198,4 +304,3 @@ If you don't specify a backend in PyCharm, and Matplotlib defaults to a non-inte
 - **PyCharm** may default to a non-interactive backend like **Agg**, which doesn't support mouse events.
 - By setting `matplotlib.use('TkAgg')`, you're explicitly telling Matplotlib to use the **TkAgg** backend, which supports interactive features like click events.
 - This is needed in PyCharm or other IDEs when you're running scripts outside of environments like Jupyter notebooks that automatically handle interactive plotting.
-
